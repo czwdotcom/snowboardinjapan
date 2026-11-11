@@ -1,5 +1,5 @@
 // Offline support: app shell cached on install, map tiles and data cached as you use them.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL = `shell-${VERSION}`;
 const TILES = 'tiles-v1';
 const DATA = `data-${VERSION}`;

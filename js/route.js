@@ -113,17 +113,27 @@ export class RideGraph {
         steps.push({ kind: e.kind, way: e.way, cls: e.cls, name: w ? w.name : '', len: e.len, t: e.t, coords });
       }
     }
-    // Merge consecutive run steps on unnamed connectors into their neighbour for a cleaner list.
+    // Collapse everything ridden between two lifts into one step, named after its longest run.
     const out = [];
     for (const s of steps) {
       const prev = out[out.length - 1];
-      if (s.kind === 'walk' && s.len < 60) { if (prev) { prev.len += s.len; prev.t += s.t; } continue; }
-      if (prev && s.kind === 'run' && prev.kind === 'run' && (!s.name || s.name === prev.name)) {
+      if (s.kind === 'walk' && s.len < 80) { if (prev) { prev.len += s.len; prev.t += s.t; } continue; }
+      if (s.kind === 'run') s.parts = [{ name: s.name, len: s.len }];
+      if (prev && s.kind === 'run' && prev.kind === 'run') {
         prev.len += s.len; prev.t += s.t; prev.coords.push(...s.coords.slice(1));
         prev.cls = rank(s.cls) > rank(prev.cls) ? s.cls : prev.cls;
+        prev.parts.push(...s.parts);
         continue;
       }
       out.push(s);
+    }
+    for (const s of out) {
+      if (s.kind !== 'run') continue;
+      const byName = new Map();
+      s.parts.forEach((p) => { if (p.name) byName.set(p.name, (byName.get(p.name) || 0) + p.len); });
+      const names = [...byName.entries()].sort((a, b) => b[1] - a[1]).map((e) => e[0]);
+      s.name = names[0] || '';
+      s.via = names.slice(1, 3);
     }
     const total = out.reduce((a, s) => a + s.t + (s.wait || 0) * 60, 0);
     return { steps: out, total, lifts: out.filter((s) => s.kind === 'lift').length };

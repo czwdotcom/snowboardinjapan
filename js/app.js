@@ -102,7 +102,11 @@ function zoomLayers() {
 function areaOf(pos) {
   if (!S.data) return '';
   const a = S.data.areas.find((ar) => pointInPolygon(pos, ar.coords));
-  return a ? a.name : '';
+  return a ? shortArea(a.name) : '';
+}
+// "Shiga Kogen Yakebitaiyama Ski Area" -> "Yakebitaiyama"
+function shortArea(n) {
+  return (n || '').replace(/^Shiga Kogen\s+/i, '').replace(/\s+Ski (Area|Resort)$/i, '').trim() || n;
 }
 function liftArea(l) {
   if (!S.liftArea.has(l.id)) S.liftArea.set(l.id, areaOf(l.coords[0]));
@@ -296,7 +300,10 @@ function computeRoute(quiet) {
   $('#btnClearRoute').hidden = false;
   if (!r) {
     S.route = null; layers.route.clearLayers();
-    routeMsg(`No route to ${S.dest.label} with your current filters. Turn on more run types or clear lift holds.`);
+    const anyRoute = S.graph.route(start.node, S.dest.node, { allowed: new Set(CLASSES.map((c) => c[0])), held: new Set(), waitMin: () => 0 });
+    routeMsg(anyRoute
+      ? `No route to ${S.dest.label} with your current filters or lift holds. Turn on more run types or clear a hold.`
+      : `${S.dest.label} isn’t linked to where you are by lifts or runs. Kumanoyu, Yokoteyama and Shibutoge are reached by the free shuttle bus.`);
     return;
   }
   S.route = r;
@@ -318,7 +325,8 @@ function stepHTML(s, i) {
     return `<li><span class="num">${i + 1}</span><span class="st"><b>${esc(s.name)}</b><span>${liftLabel(s.lift.type)} · ride ${fmtMin(s.t)}</span></span>${held ? '' : `<span class="tag ${lvl}">~${s.wait} min</span>`}</li>`;
   }
   if (s.kind === 'walk') return `<li><span class="num walk">${i + 1}</span><span class="st"><b>Walk / skate across</b><span>${fmtDist(s.len)}</span></span></li>`;
-  return `<li><span class="num ${s.cls}">${i + 1}</span><span class="st"><b>${esc(s.name || `${CLS_LABEL[s.cls]} run`)}</b><span>${CLS_LABEL[s.cls]} · ${fmtDist(s.len)}</span></span></li>`;
+  const via = s.via && s.via.length ? ` · then ${s.via.map(esc).join(', ')}` : '';
+  return `<li><span class="num ${s.cls}">${i + 1}</span><span class="st"><b>${esc(s.name || `${CLS_LABEL[s.cls]} run`)}</b><span>Hardest: ${CLS_LABEL[s.cls]} · ${fmtDist(s.len)}${via}</span></span></li>`;
 }
 function routeMsg(msg) {
   $('#sheetTitle').textContent = S.dest ? `To ${S.dest.label}` : 'Where to?';
@@ -348,7 +356,7 @@ function pickerItems() {
   const food = S.data.food.map((f) => ({ group: 'Food & drink', label: f.name, sub: `${kindLabel(f.kind)}${areaOf([f.lat, f.lon]) ? ` · ${areaOf([f.lat, f.lon])}` : ''}`, pick: () => routeToPoint(f.name, [f.lat, f.lon]) }));
   const areas = S.data.areas.filter((a) => a.name).map((a) => {
     const c = a.coords.reduce((acc, p) => [acc[0] + p[0] / a.coords.length, acc[1] + p[1] / a.coords.length], [0, 0]);
-    return { group: 'Ski areas', label: a.name, sub: a.nameJa && a.nameJa !== a.name ? a.nameJa : '', pick: () => routeToPoint(a.name, c) };
+    return { group: 'Ski areas', label: shortArea(a.name), sub: a.nameJa && a.nameJa !== a.name ? a.nameJa : '', pick: () => routeToPoint(shortArea(a.name), c) };
   });
   return [...areas, ...lifts, ...food];
 }
