@@ -1,6 +1,6 @@
 # Shiga Ride
 
-A phone web app for a Shiga Kogen snowboard trip (17–20 Jan 2027).
+A phone web app for a Shiga Kogen snowboard trip.
 
 - **Map**: your GPS position on OpenStreetMap, runs coloured by difficulty (green / red / black as on Japanese trail maps), terrain park and off-piste styled separately, filter chips, and a legend.
 - **Routing**: pick a lift, food spot or ski area and get the quickest way there using runs you've left switched on. Lifts you mark as on hold are skipped.
